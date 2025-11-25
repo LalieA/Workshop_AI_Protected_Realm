@@ -1,0 +1,5 @@
+numpy==1.26.4
+onnxruntime==1.16.1
+paho_mqtt==2.1.0
+influxdb_client==1.49.0
+protobuf==5.28.3

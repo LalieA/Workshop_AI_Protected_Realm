@@ -1,0 +1,12 @@
+servers/mosquitto*/log/
+servers/mosquitto*/data/
+
+servers/grafana/varlib/csv
+servers/grafana/varlib/pdf
+servers/grafana/varlib/plugins
+servers/grafana/varlib/png
+
+servers/influx/config.yml/
+servers/influx/influxdb2/engine/
+
+protobuf_data/

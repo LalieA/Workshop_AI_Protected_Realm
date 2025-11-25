@@ -1,0 +1,172 @@
+# Copyright (C) 2025 CEA - All Rights Reserved
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of  MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2025 CEA - All Rights Reserved
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of  MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program.  If not, see <http://www.gnu.org/licenses/>.
+
+services:
+  ### Supervision server
+  grafana:
+    image: "grafana/grafana-oss"
+    container_name: grafana_supervision
+    user: "0"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - "./grafana/varlib:/var/lib/grafana"
+      - "./grafana/etc:/etc/grafana"
+    networks:
+      supervision_server_net:
+        ipv4_address: 172.16.238.10
+
+  influxdb:
+    image: "influxdb:2.0.7"
+    container_name: influxDB_supervision
+    user: "0"
+    environment:
+      - INFLUXDB_DB=sec
+      - INFLUXDB_ADMIN_USER=adminadmin
+      - INFLUXDB_ADMIN_PASSWORD=adminadmin
+    ports:
+      - "8086:8086"
+    volumes:
+      - "./influx/influxdb2:/var/lib/influxdb2"
+      - "./influx/config.yml:/etc/influxdb2/config.yml"
+    networks:
+      supervision_server_net:
+        ipv4_address: 172.16.238.11
+
+  mosquitto-supervision:
+    image: "eclipse-mosquitto:2"
+    container_name: mqtt_broker_supervision
+    volumes:
+      - "./mosquitto-gateway/config/:/mosquitto/config/"
+      - "./mosquitto-supervision/log/:/mosquitto/log/"
+      - "./mosquitto-supervision/data/:/mosquitto/data"
+    ports:
+      - "1883:1883"
+    networks:
+      supervision_server_net:
+        ipv4_address: 172.16.238.13
+
+  detection_engine:
+    build: detection_engine/
+    user: "0"
+    container_name: detection_engine_supervision
+    volumes:
+      - "./protobuf_data:/app/protobuf_data"
+    networks:
+      supervision_server_net:
+        ipv4_address: 172.16.238.16
+
+  ### IIoT server
+  mosquitto-gateway:
+    image: "eclipse-mosquitto:2"
+    container_name: mosquitto_gateway
+    volumes:
+      - "./mosquitto-gateway/config/:/mosquitto/config/"
+      - "./mosquitto-gateway/log/:/mosquitto/log/"
+      - "./mosquitto-gateway/data/:/mosquitto/data"
+    ports:
+      - "1885:1883"
+    networks:
+      iiot_server_net:
+        ipv4_address: 172.16.240.13
+
+  ### SCADA server
+  fuxa:
+    image: frangoteam/fuxa:1.2.3
+    container_name: fuxa
+    ports:
+      - "1881:1881"
+    networks:
+      - scada_net
+
+  ### Simulated industrial process
+  modbus_simu: # expose variables from simulated sensors & actuators
+    image: seciiot/modbus:amd64
+    build:
+      context: ./process-simulator
+      dockerfile: ./dockerImages/amd64/Dockerfile.modbus
+    container_name: modbus_simu
+    ports:
+      - "5020:5020"
+    networks:
+      - process_simu_net
+    links:
+      - "redis_simu:redis"
+    command: "--toml /opt/process-simulator/scenarios/hydro/config.toml --slaves 1"
+    depends_on:
+      process_simu:
+        condition: service_started
+
+  redis_simu: # store states of sensors & actuators from simulator
+    image: redis:alpine
+    container_name: redis_simu
+    ports:
+      - 6380:6379
+    networks:
+      - process_simu_net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 1s
+      timeout: 3s
+      retries: 10
+    # logging:
+    #   driver: none
+
+  process_simu: # physical process simulator
+    image: seciiot/hydro:amd64
+    build:
+      context: ./process-simulator
+      dockerfile: ./dockerImages/amd64/Dockerfile.simulator-hydro
+    container_name: process_simu
+    tty: true
+    networks:
+      - process_simu_net
+    links:
+      - "redis_simu:redis"
+    depends_on:
+      redis_simu:
+        condition: service_healthy
+
+networks:
+  supervision_server_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.238.0/24
+  iiot_server_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.240.0/24
+  scada_net:
+    driver: bridge
+  process_simu_net:
+    driver: bridge
