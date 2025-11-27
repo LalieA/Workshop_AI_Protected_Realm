@@ -43,17 +43,15 @@ sudo ifconfig <eth_interface> 50.50.50.36/24
 sudo ip a add 50.50.50.36/24 dev <eth_interface>
 ```
 
-1. Let the board start (~30sec) and try to ping it:
+4. Let the board start (~30sec) and try to ping it:
 
 ```
 ping 50.50.50.47
 ```
 
-You should now be able to get a PONG response from the board.
-If it is not the case, please call us.
-
-> [!IMPORTANT]
-> The date could not be set on the board, so call us when you have completed this step so we can check and update it if needed.
+> [!NOTE]
+> You should now be able to get a PONG response from the board.
+> If it is not the case, please call us.
 
 Now that the board is set up, let's configure server-side services.
 From your computer:
@@ -68,12 +66,12 @@ sudo docker compose up --build
 ```
 <!-- You should now be able to access the OpenPLC service at `http://50.50.50.47:8080`. -->
 
-Now, you deployed and should be able to access to:
+You deployed and should be able to access to:
 
 - the **Supervision Server**, responsible for retrieving data sent by the board and running inferences of the ML model that computes anomaly scores.
   - `http://localhost:3000` (Grafana)
-    - username : admin
-    - password : admin
+    - username : `admin`
+    - password : `admin`
 - the **I-IoT Server**, responsible for retrieving data sent by the board for Industrial IoT operations (giving data from environmental sensors like pressure, temperature, humidity).
   - we removed all server-side processing for this because it is useless for this workshop.
   - a webserver is embedded on the PLC to view gathered data, accessible at: `http://50.50.50.47:5000`
@@ -88,10 +86,10 @@ Now, you deployed and should be able to access to:
   - nothing to access here, just some python scripts running.
 
 > [!IMPORTANT]
-> The last thing to do is to enable the PLC to run and, for this, a password is needed. Again, call us when you have completed this step so we can start the PLC.
+> The last thing to do is to enable the PLC to run. Call us when you have completed this step so we can start the PLC.
 
 > [!WARNING]
-> It may happen that the physical process simulator is a little out of sync, especially when the PLC is not started immediately. If this happens, it is best to leave the Docker Compose servers running and restart only the simulator using `cd servers && sudo docker compose restart process_simu`.
+> It may happen that the physical process simulator is a little out of sync, especially when the PLC is not started immediately. If this happens, it is best to leave the Docker Compose servers running and restart only the simulator using `cd servers && sudo docker compose restart process_simu` from another terminal.
 
 So, everything's ready now! How about we get down to business?
 
@@ -105,10 +103,10 @@ So, everything's ready now! How about we get down to business?
 
 Well, we've heard that the technician who maintains industrial devices in this facility is often called `techi`...
 
- **Your turn!** 🕺💃
-
 > [!NOTE]
 > The anomaly detection model used is a fairly standard ML model, designed for demonstration purposes. As such, it may generate false alarms, just as it may fail to detect your actions.
+
+ **Your turn!** 🕺💃
 
 ## 📚🧠 Going further: the intrusion detection model
 
