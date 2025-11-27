@@ -118,8 +118,6 @@ services:
       - "5020:5020"
     networks:
       - process_simu_net
-    links:
-      - "redis_simu:redis"
     command: "--toml /opt/process-simulator/scenarios/hydro/config.toml --slaves 1"
     depends_on:
       process_simu:
@@ -131,7 +129,8 @@ services:
     ports:
       - 6380:6379
     networks:
-      - process_simu_net
+      process_simu_net:
+        aliases: [redis_simu, redis]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
       interval: 1s
@@ -149,8 +148,6 @@ services:
     tty: true
     networks:
       - process_simu_net
-    links:
-      - "redis_simu:redis"
     depends_on:
       redis_simu:
         condition: service_healthy
