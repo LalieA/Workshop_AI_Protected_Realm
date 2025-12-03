@@ -110,7 +110,31 @@ Well, we've heard that the technician who maintains industrial devices in this f
 
 ## 📚🧠 Going further: the intrusion detection model
 
-Coming soon
+The presented Host-based Intrusion Detection System (HIDS) relies on system calls to monitor patterns of low-level actions executed on the system. This is valuable data for intrusion detection because it is nearly impossible for an attacker to infiltrate a system without raising even a single system call. Each system call, such as file access, process creation, or network communication, is represented by its identifier: fork (syscall #2), read (#3), write (#4), open (#5), close (#6), etc.
+
+![Overview of Intrusion Detection System based on system calls](./images/ids_overview.png)
+
+System calls made across the entire system are retrieved during execution and divided into 2-second sequences, corresponding to all system calls that occurred within a 2-second time window.
+- [3-gram](https://en.wikipedia.org/wiki/N-gram), e.g. unique contiguous sequences of 3 system calls, are constructed for each sequence.
+- For each 3-gram, [TF-IDF](https://en.wikipedia.org/wiki/Tf%E2%80%93idf) (Term Frequency - Inverse Document Frequency) is computed. This value increases with the frequency of the 3-gram in the sequence (TF), but decreases with the frequency of that 3-gram across all sequences (IDF), thus emphasizing frequent but distinctive patterns.
+The 3-gram TF-IDF vectors derived from system calls sequences are used as input for an [Isolation Forest](https://en.wikipedia.org/wiki/Isolation_forest) algorithm, which is responsible for assigning an anomaly score between 0 (normal) and 1 (abnormal) to the system's behavior over the last 2 seconds.
+
+![Data processing and feature extraction from sequences of system calls](./images/anomaly_detection1.gif)
+
+Data from 4 normal runs of the PLC, each lasting 4 hours, was used to create a training set for the intrusion detection model. When the IDS is deployed, the model processes system call sequences and computes anomaly scores, triggering an alert when the score exceeds a threshold.
+
+![Anomaly detection from extracted features](./images/anomaly_detection2.gif)
+
+By focusing on dynamic analysis of system call patterns rather than static signatures, this type of IDS is able of detecting attacks that alter system control flow, even those exploiting 0-day vulnerabilities.
+
+However, this IDS is inherently vulnerable to [**mimicry attacks**](https://people.eecs.berkeley.edu/~daw/papers/mimicry.pdf) since it relies solely on system call identifiers. An attacker could therefore hide their behavior in a sequence of system calls designed to be recognized as legitimate by the IDS, for example by deliberately causing some system calls in the sequence to fail.
+
+Machine learning algorithms help solve problems, but they also bring new ones. For instance, it can be difficult to explain anomaly scores: why does one sequence of system calls have a slightly higher score than another? This falls within the realm of [**Explainable AI**](https://en.wikipedia.org/wiki/Explainable_artificial_intelligence).
+Then, forensic mechanisms are needed around this IDS to provide more context for an alert: processes involved, resources potentially targeted, etc.
+AI can also be resource consuming and is hardly integratable as is, especially on embedded systems. [**Pruning**](https://en.wikipedia.org/wiki/Pruning_(artificial_neural_network)), [**quantization**](https://huggingface.co/docs/optimum/concept_guides/quantization), and [**distillation**](https://www.ibm.com/think/topics/knowledge-distillation) techniques can be used to address these problems.
+In addition, AI models also bring their own vulnerabilities, primarily in the supply chain through [**data poisoning**](https://www.ibm.com/think/topics/data-poisoning), where an attacker could modify the training dataset of the detection model so that its behavior is learned as normal, and then through [**adversarial attacks**](https://www.paloaltonetworks.com/cyberpedia/what-are-adversarial-attacks-on-AI-Machine-Learning), where a second AI model could be trained to build sequences that are recognized as legitimate by the targeted detection model.
+
+Finally, AI or not, the implementation of the IDS can make it still vulnerable to classic EDR evasion techniques such as [bypassing the system call hooking](https://matheuzsecurity.github.io/hacking/evading-linux-edrs-with-io-uring/) mechanism.
 
 ## 🌟 Acknowledgements
 
